@@ -1,0 +1,127 @@
+<project  name="AntBuildScript" default="build" basedir=".">
+    <description>
+        Ant task development task
+    </description>
+
+    <taskdef name="rename-task" classname="com.fronya.ant.task.RenameTask"
+             classpath="lib-ext/custom-task-1.0.0.jar" loaderref="ant.coreLoader"/>
+
+    <property name="folder.in" value="in"/>
+    <property name="folder.out" value="out"/>
+    <property name="folder.temp" value="temp"/>
+    <property name="folder.test" value="../input_files"/>
+    <tstamp>
+        <format property="job.id" pattern="dd.MM.yyyy_hh-mm-ss"/>
+    </tstamp>
+
+    <target name="init"
+            description="configuration logging">
+       <tstamp>
+            <format property="timestamp" pattern="yyyy-MM-dd_HH-mm-ss"/>
+        </tstamp>
+        <property name="build.log.dir" location="${basedir}/buildlogs"/>
+        <mkdir dir="${build.log.dir}"/>
+        <property name="build.log.filename" value="build_${timestamp}.log"/>
+        <record name="${build.log.dir}/${build.log.filename}"
+                loglevel="verbose" append="false"/>
+        <echo message="Build logged to ${build.log.filename}"/>
+    </target>
+
+    <target name="create" depends="init"
+            description="create folders and add input files">
+        <timestamp.echo message="Start create"/>
+        <mkdir dir="${folder.in}"/>
+        <mkdir dir="${folder.out}"/>
+        <mkdir dir="${folder.temp}"/>
+        <copy todir="${folder.in}">
+            <fileset dir="${folder.test}"/>
+        </copy>
+        <timestamp.echo message="End create"/>
+    </target>
+
+    <target name="copy" depends="clean"
+            description="copy files with zip, xml, html, xhtml extensions from in to temp folder">
+        <timestamp.echo message="Start copy"/>
+        <copy todir="${folder.temp}">
+            <fileset dir="${folder.in}">
+                <include name="**/*.zip"/>
+                <include name="**/*.xml"/>
+                <include name="**/*.html"/>
+                <include name="**/*.xhtml"/>
+            </fileset>
+        </copy>
+        <timestamp.echo message="End copy"/>
+    </target>
+
+    <target name="unpack" depends="copy"
+            description="unpack zip packages without folder structure (xml, html, xhtml, png)">
+        <timestamp.echo message="Start unpack"/>
+
+        <unzip dest="${folder.temp}/unzip">
+            <fileset dir="${folder.temp}">
+                <include name="**/*.zip" />
+            </fileset>
+            <mapper type="flatten"/>
+            <patternset>
+                <include name="**/*.xml"/>
+                <include name="**/*.html"/>
+                <include name="**/*.xhtml"/>
+                <include name="**/*.png"/>
+            </patternset>
+        </unzip>
+        <timestamp.echo message="End unpack"/>
+    </target>
+
+    <target name="rename-files" depends="unpack"
+            description="rename files from zip">
+        <rename-task destdir="${folder.temp}/unzip" jobid="${job.id}">
+            <fileset dir="${folder.temp}/unzip"/>
+        </rename-task>
+        <move todir="${folder.temp}">
+            <fileset dir="${folder.temp}/unzip"/>
+        </move>
+        <delete dir="${folder.temp}/unzip"/>
+    </target>
+
+    <target name="delete-packages" depends="rename-files"
+            description="delete zip packages from temp">
+        <timestamp.echo message="Start delete packages"/>
+        <delete dir="${folder.temp}" includes="**/*.zip"/>
+        <timestamp.echo message="End delete packages"/>
+    </target>
+
+    <target name="build" depends="delete-packages"
+            description="zip files from temp (xml, html, xhtml) and copy package to out">
+        <timestamp.echo message="Start build"/>
+        <property name="package.name" value="${folder.temp}/new_package.zip"/>
+        <zip basedir="${folder.temp}" destfile="${package.name}">
+            <patternset>
+                <include name="**/*.xml"/>
+                <include name="**/*.html"/>
+                <include name="**/*.xhtml"/>
+            </patternset>
+        </zip>
+        <copy file="${package.name}" todir="${folder.out}"/>
+        <timestamp.echo message="End build"/>
+    </target>
+
+    <target name="clean" depends="create"
+            description="clean temp folder">
+        <timestamp.echo message="Start clean"/>
+        <delete includeemptydirs="true">
+            <fileset dir="${folder.temp}" includes="**/*"/>
+        </delete>
+        <timestamp.echo message="End clean"/>
+    </target>
+
+    <macrodef name="timestamp.echo" description="get current time">
+        <attribute name="message"/>
+        <sequential>
+            <local name="log.time" />
+            <tstamp>
+                <format property="log.time" pattern="dd/MM/yyyy hh:mm:ss"/>
+            </tstamp>
+            <echo message="${log.time} @{message}" />
+        </sequential>
+    </macrodef>
+</project>
