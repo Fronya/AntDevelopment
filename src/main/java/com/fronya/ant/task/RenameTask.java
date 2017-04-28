@@ -7,11 +7,12 @@ import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
 
 import java.io.File;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Ant task for rename files
+ */
 public class RenameTask extends Task{
     private String destDir;
     private String jobId;
@@ -31,7 +32,7 @@ public class RenameTask extends Task{
 
     public void execute() throws BuildException {
         for (FileSet currentFileSet: filesets) {
-            DirectoryScanner ds = currentFileSet.getDirectoryScanner(getProject());         // 3
+            DirectoryScanner ds = currentFileSet.getDirectoryScanner(getProject());
             String[] includedFiles = ds.getIncludedFiles();
             for (String currentFile: includedFiles) {
                 if(!renameFile(currentFile)){
